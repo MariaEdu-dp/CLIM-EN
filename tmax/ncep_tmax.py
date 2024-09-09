@@ -39,7 +39,7 @@ date_ranges = [
 
 for (start_date, end_date) in date_ranges:
     # Carregar o arquivo netCDF
-    nc_ndvi = xr.open_dataset('http://apdrc.soest.hawaii.edu:80/dods/public_data/Reanalysis_Data/NCEP/NCEP2/monthly/gaussian_grid/tmax2m')
+    nc_ndvi = xr.open_dataset('http://apdrc.soest.hawaii.edu:80/dods/public_data/Reanalysis_Data/NCEP/NCEP2/daily/gaussian_grid/tmax2m')
     var1 = nc_ndvi['tmax']
     data = var1.sel(lat=slice(-60, 15), lon=slice(270, 330), time=slice(start_date, end_date)) 
     print(f"{Fore.LIGHTGREEN} data {Fore.RESET})
