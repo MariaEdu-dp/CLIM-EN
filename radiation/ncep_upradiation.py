@@ -40,7 +40,7 @@ date_ranges = [
 for (start_date, end_date) in date_ranges:
     # Carregar o arquivo netCDF
     nc_ndvi = xr.open_dataset('http://apdrc.soest.hawaii.edu:80/dods/public_data/Reanalysis_Data/NCEP/NCEP2/daily/gaussian_grid/ulwrf_surf')
-    var1 = nc_ndvi['rhum']
+    var1 = nc_ndvi['ulwrf_surf']
     data = var1.sel(lat=slice(-60, 15), lon=slice(270, 330), time=slice(start_date, end_date)) 
     print(f"{Fore.LIGHTGREEN_EX}", data, "{Fore.RESET}")
     data.to_netcdf(f"{start_date}.nc", mode='w')
