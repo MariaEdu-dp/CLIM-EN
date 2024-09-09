@@ -20,7 +20,7 @@ print("Diretório de trabalho atual:", os.getcwd())
 # Agora você pode executar operações de arquivo na pasta desejada
 # Por exemplo, listar arquivos na pasta
 for arquivo in os.listdir():
-    print("{Fore.LIGHTGREEN_EX}" arquivo "{Fore.RESET}")
+    print("{Fore.LIGHTGREEN_EX}", arquivo, "{Fore.RESET}")
 
 date_ranges = [
     ("1982-04-01", "1983-06-01"),
@@ -42,5 +42,5 @@ for (start_date, end_date) in date_ranges:
     nc_ndvi = xr.open_dataset('http://apdrc.soest.hawaii.edu:80/dods/public_data/Reanalysis_Data/NCEP/NCEP2/daily/gaussian_grid/ulwrf_surf')
     var1 = nc_ndvi['rhum']
     data = var1.sel(lat=slice(-60, 15), lon=slice(270, 330), time=slice(start_date, end_date)) 
-    print(f"{Fore.LIGHTGREEN_EX}" data "{Fore.RESET}")
+    print(f"{Fore.LIGHTGREEN_EX}", data, "{Fore.RESET}")
     data.to_netcdf(f"{start_date}.nc", mode='w')
