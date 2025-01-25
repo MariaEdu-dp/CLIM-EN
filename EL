@@ -1,0 +1,97 @@
+import xarray as xr
+from scipy.stats import t
+import numpy as np
+
+enso_episodes = [
+	{"type": "EL", "start": "1982-04-01", "end": "1983-06-30"},
+	{"type": "EL", "start": "1986-09-01", "end": "1988-02-29"},
+	{"type": "EL", "start": "1991-05-01", "end": "1992-06-30"},
+	{"type": "EL", "start": "1994-09-01", "end": "1995-03-30"},
+	{"type": "EL", "start": "1997-05-01", "end": "1998-05-30"},
+	{"type": "EL", "start": "2002-06-01", "end": "2003-02-28"},
+	{"type": "EL", "start": "2004-07-01", "end": "2005-02-28"},
+	{"type": "EL", "start": "2006-09-01", "end": "2007-01-30"},
+	{"type": "EL", "start": "2009-07-01", "end": "2010-03-30"},
+	{"type": "EL", "start": "2014-10-01", "end": "2016-04-30"},
+	{"type": "EL", "start": "2018-09-01", "end": "2019-06-30"},
+	{"type": "EL", "start": "2023-05-01", "end": "2024-04-30"}
+]
+
+mslp = xr.open_dataset("http://apdrc.soest.hawaii.edu:80/dods/public_data/Reanalysis_Data/NCEP/NCEP2/daily/surface/mslp")
+variable = list(mslp.data_vars.keys())[0]  # Select the first variable automatically
+data = mslp[variable]
+print("Data:", data)
+
+episodes = []
+for episode in enso_episodes:
+	# Convert start and end dates to datetime objects
+	start_date = episode["start"]
+	end_date = episode["end"]
+
+	# Clip the dataset for each ENSO episode
+	clipped_data = data.sel(time=slice(start_date, end_date))
+	print(clipped_data)
+	episodes.append(clipped_data)
+
+el_data_concat = xr.concat(episodes, dim="time")
+print("Dados concatenados.")
+
+def calculate_trend_and_significance(data):
+	time = data["time"].astype(float)
+	time_mean = time.mean(dim="time")
+	data_mean = data.mean(dim="time")
+
+	# Covariância entre tempo e a variável
+	cov_time_data = ((time - time_mean) * (data - data_mean)).sum(dim="time")
+
+	# Variância do tempo
+	var_time = ((time - time_mean) ** 2).sum(dim="time")
+
+	# Coeficiente de regressão (tendência)
+	beta = cov_time_data / var_time
+
+	# Intercepto
+	alpha = data_mean - beta * time_mean
+
+	# Valores previstos pela regressão
+	y_pred = alpha + beta * time
+
+	# Resíduos da regressão
+	residuals = data - y_pred
+
+	# Graus de liberdade
+	n = data.sizes["time"]
+	dof = n - 2
+
+	# Soma dos quadrados dos resíduos
+	rss = (residuals ** 2).sum(dim="time")
+
+	# Variância residual
+	residual_variance = rss / dof
+
+	# Erro padrão do coeficiente beta
+	std_error_beta = np.sqrt(residual_variance / var_time)
+
+	# Estatística t para beta
+	t_stat_beta = beta / std_error_beta
+
+	# p-value para cada ponto espacial
+	p_value = xr.apply_ufunc(
+		t.cdf,
+		np.abs(t_stat_beta),
+		input_core_dims=[[]],
+		kwargs={"df": dof},
+		dask="parallelized",
+		output_dtypes=[float]
+	)
+	p_value = 2 * (1 - p_value)  # Two-tailed test
+
+	return beta, p_value
+
+trend, p_values = calculate_trend_and_significance(clipped_data)
+trend * len(clipped_data.time) * 1e9 * 60 * 60 * 24
+
+# Create a boolean mask for p-values > 0.05
+mask = p_values > 0.05
+
+trend.to_netcdf("POLYFIT_MSLP.nc")
